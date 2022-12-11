@@ -9,20 +9,69 @@ app.use(cors());
 
 const users = [];
 
+function getUserByUserName(username) {
+  return users.find(user => user.username === username)
+}
+
+function getUserById(userId) {
+  return users.find(user => user.id === userId)
+}
+
+function getTodo(user, todoId) {
+  return user && user.todos ? user.todos.find(todo => todo.id === todoId) : null
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const user = getUserByUserName(username)
+  if (user) {
+    request.user = user
+    return next()
+  } else {
+    return response.status(404).json({ error: "User [" + username + "] not found" })
+  }
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const { user } = request
+  const userIsEligible = user.pro || (!user.pro && user.todos.length < 10)
+  if (userIsEligible) {
+    return next()
+  } else {
+    return response.status(403).json({ error: "User not elegible to create todos"})
+  }
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers
+  const { id } = request.params
+  
+  const user = getUserByUserName(username)
+
+  if (validate(id) === false) {
+    return response.status(400).json({ error: "Todo id ["+id+"] is invalid"}) 
+  }
+  
+  const todo = getTodo(user, id)
+
+  if (user && todo) {
+    request.user = user
+    request.todo = todo
+    return next()
+  } else {
+    return response.status(404).json({ error: "User "+username+" does not have a todo with id "+id}) 
+  }  
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const { id } = request.params
+  const user = getUserById(id)
+  if (user) {
+    request.user = user
+    return next()
+  } else {
+    return response.status(404).json({ error: "User with id "+id+" not found."})  
+  }
 }
 
 app.post('/users', (request, response) => {
